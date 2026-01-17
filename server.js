@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import { generateAnalysis } from "./analysis.js";
 
 const app = express();
 app.use(cors());
@@ -14,16 +13,25 @@ app.post("/analyze", async (req, res) => {
       return res.status(400).json({ error: "Missing symbol or timeframe" });
     }
 
-    const analysis = await generateAnalysis(symbol, timeframe, candles);
-    res.json(analysis);
+    // 🔥 Reenviamos la petición al worker (el que sí hace el análisis)
+    const response = await fetch(
+      "https://twilight-flower-efcc.borjadani6.workers.dev/analyze",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol, timeframe, candles })
+      }
+    );
+
+    const data = await response.json();
+    res.json(data);
+
   } catch (err) {
     res.status(500).json({ error: "Internal error", details: String(err) });
   }
 });
 
 const PORT = process.env.PORT || 8080;
-
 app.listen(PORT, () => {
   console.log("API running on port " + PORT);
 });
-
